@@ -2,98 +2,219 @@
 import { ref, onMounted } from 'vue'
 import DatabaseTable from './components/DatabaseTable.vue'
 import DatabaseOperations from './components/DatabaseOperations.vue'
+import LoginPage from './components/LoginPage.vue'
 import { api } from './services/api'
 
 const currentTable = ref('')
 const tables = ref([])
+const loading = ref(true)
+const isLoggedIn = ref(false)
+const user = ref(null)
 
 const fetchTables = async () => {
   try {
     tables.value = await api.getTables()
   } catch (error) {
     console.error('获取表列表失败:', error)
+  } finally {
+    loading.value = false
   }
+}
+
+const handleLogin = (userData) => {
+  user.value = userData
+  isLoggedIn.value = true
+  fetchTables()
+}
+
+const handleLogout = () => {
+  user.value = null
+  isLoggedIn.value = false
+  currentTable.value = ''
+  tables.value = []
 }
 
 onMounted(fetchTables)
 </script>
 
 <template>
-  <div class="container">
-    <header>
-      <h1>数据库管理系统</h1>
-    </header>
+  <LoginPage 
+    v-if="!isLoggedIn" 
+    @login="handleLogin"
+  />
+  
+  <div v-else class="app-container">
+    <div class="container">
+      <header>
+        <div class="logo">
+          <span class="icon">DB</span>
+          <h1>Database Manager</h1>
+        </div>
+        <div class="user-info">
+          <span class="username">{{ user.username }}</span>
+          <button class="logout-button" @click="handleLogout">
+            Logout
+          </button>
+        </div>
+      </header>
 
-    <main class="main-content">
-      <div class="sidebar">
-        <h2>数据表列表</h2>
-        <ul class="table-list">
-          <li v-for="table in tables" 
-              :key="table"
-              :class="{ active: currentTable === table }"
-              @click="currentTable = table">
-            {{ table }}
-          </li>
-        </ul>
-      </div>
+      <main class="main-content" :class="{ 'loading': loading }">
+        <div class="sidebar">
+          <div class="section-title">数据表</div>
+          <div class="table-list-container">
+            <ul class="table-list">
+              <li v-for="table in tables" 
+                  :key="table"
+                  :class="{ active: currentTable === table }"
+                  @click="currentTable = table">
+                {{ table }}
+              </li>
+            </ul>
+          </div>
+        </div>
 
-      <div class="content">
-        <DatabaseOperations 
-          :tableName="currentTable" 
-          @refresh="$refs.dataTable?.refreshData"
-        />
-        <DatabaseTable 
-          ref="dataTable"
-          :tableName="currentTable" 
-        />
-      </div>
-    </main>
+        <div class="content">
+          <DatabaseOperations 
+            :tableName="currentTable" 
+            @refresh="$refs.dataTable?.refreshData"
+          />
+          <DatabaseTable 
+            ref="dataTable"
+            :tableName="currentTable" 
+          />
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 
 <style>
-/* 添加全局样式 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
-  font-family: Arial, sans-serif;
-  background-color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 #app {
-  width: 100%;
+  width: 100vw;
   min-height: 100vh;
-  background-color: #ffffff;
+  overflow-x: hidden;
+}
+
+/* 优雅的滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 </style>
 
 <style scoped>
+.app-container {
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #ffffff;
+  width: 100%;
+  max-width: 1400px;
+  background: transparent;
 }
 
 header {
   margin-bottom: 2rem;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-h1, h2 {
-  color: #000000;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon {
+  background: #1a1a1a;
+  color: #ffffff;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+h1 {
+  color: #1a1a1a;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
 }
 
 .main-content {
   display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 20px;
+  grid-template-columns: 260px 1fr;
+  gap: 2rem;
+  min-height: calc(100vh - 200px);
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.main-content.loading {
+  opacity: 0.5;
 }
 
 .sidebar {
-  background: #f5f5f5;
-  padding: 1rem;
-  border-radius: 8px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  height: fit-content;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .table-list {
@@ -103,26 +224,80 @@ h1, h2 {
 }
 
 .table-list li {
-  padding: 8px 16px;
+  padding: 0.75rem 1rem;
   cursor: pointer;
-  border-radius: 4px;
-  color: #000000;
-  margin-bottom: 4px;
+  border-radius: 8px;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .table-list li:hover {
-  background: #e0e0e0;
+  background: #f8f9fa;
 }
 
 .table-list li.active {
-  background: #2c3e50;
-  color: white;
+  background: #f0f0f0;
+  color: #1a1a1a;
+  font-weight: 500;
 }
 
 .content {
   background: #ffffff;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border-radius: 16px;
+  min-height: 500px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 1024px) {
+  .app-container {
+    padding: 1rem;
+  }
+
+  .main-content {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    height: auto;
+  }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
+.logout-button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1.5px solid #eee;
+  border-radius: 6px;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  background: #f8f9fa;
+  border-color: #ddd;
 }
 </style>
