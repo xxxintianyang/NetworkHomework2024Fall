@@ -27,3 +27,21 @@ npm run dev
 ```sh
 npm run build
 ```
+### How to run the data base
+
+```sh
+npm run init-db
+```
+Then you should do in /server/
+
+```sh
+npm run dev
+```
+### Then run the Client
+
+```sh
+cd ../
+```
+```sh
+npm run dev
+```
