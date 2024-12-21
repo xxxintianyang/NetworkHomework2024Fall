@@ -106,45 +106,57 @@ defineExpose({ refreshData })
 
 <template>
   <div class="database-table">
-    <h2>{{ tableName || '请选择数据表' }}</h2>
+    <Transition name="fade">
+      <h2>{{ tableName || '请选择数据表' }}</h2>
+    </Transition>
     
     <div class="table-actions">
-      <button @click="handleAdd" class="add-button">添加记录</button>
+      <Transition name="slide-right">
+        <button @click="handleAdd" class="add-button">添加记录</button>
+      </Transition>
     </div>
     
-    <div v-if="loading" class="loading">加载中...</div>
+    <Transition name="fade">
+      <div v-if="loading" class="loading">加载中...</div>
+    </Transition>
     
-    <table v-else-if="tableName && columns.length">
-      <thead>
-        <tr>
-          <th v-for="col in columns" :key="col.Field">{{ col.Field }}</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in tableData" :key="row.id">
-          <td v-for="col in columns" :key="col.Field">{{ row[col.Field] }}</td>
-          <td class="actions">
-            <button @click="editRow(row)">编辑</button>
-            <button @click="deleteRow(row)" class="delete">删除</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <Transition name="fade" mode="out-in">
+      <table v-if="tableName && columns.length && !loading">
+        <thead>
+          <tr>
+            <th v-for="col in columns" :key="col.Field">{{ col.Field }}</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <TransitionGroup tag="tbody" name="slide-up">
+          <tr v-for="row in tableData" :key="row.id">
+            <td v-for="col in columns" :key="col.Field">{{ row[col.Field] }}</td>
+            <td class="actions">
+              <button @click="editRow(row)">编辑</button>
+              <button @click="deleteRow(row)" class="delete">删除</button>
+            </td>
+          </tr>
+        </TransitionGroup>
+      </table>
+    </Transition>
     
-    <div v-else-if="tableName" class="no-data">
-      暂无数据
-    </div>
+    <Transition name="fade">
+      <div v-if="tableName && !loading && (!columns.length || !tableData.length)" class="no-data">
+        暂无数据
+      </div>
+    </Transition>
     
-    <EditDialog
-      v-if="showDialog"
-      v-model:visible="showDialog"
-      :table-name="tableName"
-      :record="editingRecord"
-      :mode="dialogMode"
-      :columns="columns"
-      @save="handleSave"
-    />
+    <Transition name="slide-up">
+      <EditDialog
+        v-if="showDialog"
+        v-model:visible="showDialog"
+        :table-name="tableName"
+        :record="editingRecord"
+        :mode="dialogMode"
+        :columns="columns"
+        @save="handleSave"
+      />
+    </Transition>
   </div>
 </template>
 
@@ -208,5 +220,55 @@ th, td {
 
 h2 {
   color: #000;
+}
+
+/* 添加表格行动画 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+/* 添加表格行交错动画 */
+tbody tr {
+  transition: all 0.3s ease;
+}
+
+tbody tr:nth-child(odd) {
+  transition-delay: 0.1s;
+}
+
+tbody tr:nth-child(even) {
+  transition-delay: 0.2s;
+}
+
+/* 添加按钮悬浮效果 */
+.actions button {
+  transition: all 0.2s ease;
+}
+
+.actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.actions button.delete:hover {
+  background: #ff3333;
+}
+
+/* 添加加载动画 */
+.loading {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 </style> 

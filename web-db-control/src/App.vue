@@ -49,64 +49,78 @@ onMounted(fetchTables)
 </script>
 
 <template>
-  <LoginPage 
-    v-if="!isLoggedIn" 
-    @login="handleLogin"
-  />
-  
-  <div v-else class="app-container">
-    <div class="container">
-      <header>
-        <div class="logo">
-          <span class="icon">DB</span>
-          <h1>Database Manager</h1>
-        </div>
-        <div class="user-info">
-          <span class="username">{{ user.username }}</span>
-          <button class="logout-button" @click="handleLogout">
-            Logout
-          </button>
-        </div>
-      </header>
+  <Transition name="fade" mode="out-in">
+    <LoginPage 
+      v-if="!isLoggedIn" 
+      @login="handleLogin"
+    />
+    
+    <div v-else class="app-container">
+      <div class="container">
+        <header>
+          <Transition name="slide-right">
+            <div class="logo">
+              <span class="icon">DB</span>
+              <h1>Database Manager</h1>
+            </div>
+          </Transition>
+          
+          <Transition name="slide-right">
+            <div class="user-info">
+              <span class="username">{{ user.username }}</span>
+              <button class="logout-button" @click="handleLogout">
+                Logout
+              </button>
+            </div>
+          </Transition>
+        </header>
 
-      <main class="main-content" :class="{ 'loading': loading }">
-        <div class="sidebar">
-          <div class="section-header">
-            <div class="section-title">数据表</div>
-            <button class="create-table-button" @click="showCreateTable = true">
-              创建表
-            </button>
-          </div>
-          <div class="table-list-container">
-            <ul class="table-list">
-              <li v-for="table in tables" 
-                  :key="table"
-                  :class="{ active: currentTable === table }"
-                  @click="currentTable = table">
-                {{ table }}
-              </li>
-            </ul>
-          </div>
-        </div>
+        <main class="main-content" :class="{ 'loading': loading }">
+          <Transition name="slide-right">
+            <div class="sidebar">
+              <div class="section-header">
+                <div class="section-title">数据表</div>
+                <button class="create-table-button" @click="showCreateTable = true">
+                  创建表
+                </button>
+              </div>
+              <div class="table-list-container">
+                <TransitionGroup name="slide-right" tag="ul" class="table-list">
+                  <li v-for="table in tables" 
+                      :key="table"
+                      :class="{ active: currentTable === table }"
+                      @click="currentTable = table">
+                    {{ table }}
+                  </li>
+                </TransitionGroup>
+              </div>
+            </div>
+          </Transition>
 
-        <div class="content">
-          <DatabaseOperations 
-            :tableName="currentTable" 
-            @refresh="$refs.dataTable?.refreshData"
-          />
-          <DatabaseTable 
-            ref="dataTable"
-            :tableName="currentTable" 
-          />
-        </div>
-      </main>
+          <Transition name="fade" mode="out-in">
+            <div class="content">
+              <DatabaseOperations 
+                :tableName="currentTable" 
+                @refresh="$refs.dataTable?.refreshData"
+              />
+              <DatabaseTable 
+                ref="dataTable"
+                :tableName="currentTable" 
+              />
+            </div>
+          </Transition>
+        </main>
+      </div>
     </div>
+  </Transition>
 
+  <Transition name="slide-up">
     <CreateTableDialog
+      v-if="showCreateTable"
       v-model:visible="showCreateTable"
       @create="handleCreateTable"
     />
-  </div>
+  </Transition>
 </template>
 
 <style>
@@ -154,6 +168,67 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #999;
+}
+
+/* 添加全局过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* 添加按钮悬浮动画 */
+button {
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 添加表格行悬浮动画 */
+tr {
+  transition: all 0.2s ease;
+}
+
+tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* 添加列表项悬浮动画 */
+.table-list li {
+  transition: all 0.2s ease;
+}
+
+.table-list li:hover {
+  transform: translateX(5px);
 }
 </style>
 
