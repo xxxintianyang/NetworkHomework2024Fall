@@ -14,6 +14,16 @@ const showDialog = ref(false)
 const editingRecord = ref(null)
 const dialogMode = ref('add')
 
+const fetchTableStructure = async () => {
+  if (!props.tableName) return
+  try {
+    const structure = await api.getTableStructure(props.tableName)
+    columns.value = structure
+  } catch (error) {
+    console.error('获取表结构失败:', error)
+  }
+}
+
 const fetchTableData = async () => {
   if (!props.tableName) return
   
@@ -21,10 +31,6 @@ const fetchTableData = async () => {
   try {
     const data = await api.getTableData(props.tableName)
     tableData.value = data
-    
-    if (data.length > 0) {
-      columns.value = Object.keys(data[0])
-    }
   } catch (error) {
     console.error('获取表数据失败:', error)
   } finally {
@@ -34,11 +40,16 @@ const fetchTableData = async () => {
 
 const handleAdd = () => {
   if (!props.tableName) {
-    alert('请先选择一个数据表');
-    return;
+    alert('请先选择一个数据表')
+    return
   }
   dialogMode.value = 'add'
-  editingRecord.value = {}
+  editingRecord.value = columns.value.reduce((acc, col) => {
+    if (!['id', 'created_at', 'updated_at'].includes(col.Field)) {
+      acc[col.Field] = ''
+    }
+    return acc
+  }, {})
   showDialog.value = true
 }
 
@@ -56,15 +67,11 @@ const deleteRow = async (row) => {
     await fetchTableData()
   } catch (error) {
     console.error('删除记录失败:', error)
+    alert(error.response?.data?.message || '删除失败')
   }
 }
 
 const handleSave = async (data) => {
-  if (!props.tableName) {
-    alert('请先选择一个数据表');
-    return;
-  }
-
   try {
     if (dialogMode.value === 'add') {
       await api.addRecord(props.tableName, data)
@@ -74,7 +81,8 @@ const handleSave = async (data) => {
     showDialog.value = false
     await fetchTableData()
   } catch (error) {
-    alert(error.response?.data?.message || error.message || '操作失败')
+    console.error('保存记录失败:', error)
+    alert(error.response?.data?.message || '保存失败')
   }
 }
 
@@ -86,9 +94,14 @@ const refreshData = (data) => {
   }
 }
 
-defineExpose({ refreshData })
+watch(() => props.tableName, async (newVal) => {
+  if (newVal) {
+    await fetchTableStructure()
+    await fetchTableData()
+  }
+})
 
-watch(() => props.tableName, fetchTableData)
+defineExpose({ refreshData })
 </script>
 
 <template>
@@ -96,13 +109,7 @@ watch(() => props.tableName, fetchTableData)
     <h2>{{ tableName || '请选择数据表' }}</h2>
     
     <div class="table-actions">
-      <button 
-        @click="handleAdd" 
-        class="add-button"
-        :disabled="!tableName"
-      >
-        添加记录
-      </button>
+      <button @click="handleAdd" class="add-button">添加记录</button>
     </div>
     
     <div v-if="loading" class="loading">加载中...</div>
@@ -110,13 +117,13 @@ watch(() => props.tableName, fetchTableData)
     <table v-else-if="tableName && columns.length">
       <thead>
         <tr>
-          <th v-for="col in columns" :key="col">{{ col }}</th>
+          <th v-for="col in columns" :key="col.Field">{{ col.Field }}</th>
           <th>操作</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="row in tableData" :key="row.id">
-          <td v-for="col in columns" :key="col">{{ row[col] }}</td>
+          <td v-for="col in columns" :key="col.Field">{{ row[col.Field] }}</td>
           <td class="actions">
             <button @click="editRow(row)">编辑</button>
             <button @click="deleteRow(row)" class="delete">删除</button>
@@ -130,10 +137,12 @@ watch(() => props.tableName, fetchTableData)
     </div>
     
     <EditDialog
+      v-if="showDialog"
       v-model:visible="showDialog"
       :table-name="tableName"
       :record="editingRecord"
       :mode="dialogMode"
+      :columns="columns"
       @save="handleSave"
     />
   </div>

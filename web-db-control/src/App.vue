@@ -4,12 +4,14 @@ import DatabaseTable from './components/DatabaseTable.vue'
 import DatabaseOperations from './components/DatabaseOperations.vue'
 import LoginPage from './components/LoginPage.vue'
 import { api } from './services/api'
+import CreateTableDialog from './components/CreateTableDialog.vue'
 
 const currentTable = ref('')
 const tables = ref([])
 const loading = ref(true)
 const isLoggedIn = ref(false)
 const user = ref(null)
+const showCreateTable = ref(false)
 
 const fetchTables = async () => {
   try {
@@ -32,6 +34,15 @@ const handleLogout = () => {
   isLoggedIn.value = false
   currentTable.value = ''
   tables.value = []
+}
+
+const handleCreateTable = async (tableData) => {
+  try {
+    await api.createTable(tableData)
+    await fetchTables() // 刷新表列表
+  } catch (error) {
+    alert('创建表失败: ' + error.message)
+  }
 }
 
 onMounted(fetchTables)
@@ -60,7 +71,12 @@ onMounted(fetchTables)
 
       <main class="main-content" :class="{ 'loading': loading }">
         <div class="sidebar">
-          <div class="section-title">数据表</div>
+          <div class="section-header">
+            <div class="section-title">数据表</div>
+            <button class="create-table-button" @click="showCreateTable = true">
+              创建表
+            </button>
+          </div>
           <div class="table-list-container">
             <ul class="table-list">
               <li v-for="table in tables" 
@@ -85,6 +101,11 @@ onMounted(fetchTables)
         </div>
       </main>
     </div>
+
+    <CreateTableDialog
+      v-model:visible="showCreateTable"
+      @create="handleCreateTable"
+    />
   </div>
 </template>
 
@@ -299,5 +320,27 @@ h1 {
 .logout-button:hover {
   background: #f8f9fa;
   border-color: #ddd;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.create-table-button {
+  padding: 0.5rem 1rem;
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.create-table-button:hover {
+  background: #000;
 }
 </style>

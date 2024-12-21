@@ -21,6 +21,8 @@ module.exports = (pool) => {
   
   router.delete('/tables/:tableName/records/:id', (req, res) => 
     controller.deleteRecord(req, res));
+  
+  router.post('/tables', (req, res) => controller.createTable(req, res));
 
   return router;
 }; 

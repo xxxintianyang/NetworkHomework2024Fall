@@ -11,6 +11,10 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'add'
+  },
+  columns: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -19,43 +23,16 @@ const emit = defineEmits(['update:visible', 'save'])
 const formData = ref({})
 const loading = ref(false)
 
-// 根据表名获取默认字段
-const getDefaultFields = () => {
-  if (props.tableName === 'users') {
-    return {
-      username: '',
-      email: ''
-    }
-  } else if (props.tableName === 'products') {
-    return {
-      name: '',
-      price: 0,
-      stock: 0,
-      description: ''
-    }
-  }
-  return {}
-}
-
-// 当对话框显示时初始化表单数据
 watch(() => props.visible, (val) => {
   if (val) {
-    formData.value = props.mode === 'edit' 
-      ? { ...props.record }
-      : getDefaultFields()
+    formData.value = { ...props.record }
   }
 })
 
 const handleSubmit = async () => {
   loading.value = true
   try {
-    // 过滤掉不应该提交的字段
-    const submitData = { ...formData.value }
-    delete submitData.id
-    delete submitData.created_at
-    delete submitData.updated_at
-    
-    await emit('save', submitData)
+    await emit('save', formData.value)
     emit('update:visible', false)
   } catch (error) {
     console.error('提交失败:', error)
@@ -64,28 +41,17 @@ const handleSubmit = async () => {
   }
 }
 
-const getInputType = (key) => {
-  switch (key) {
-    case 'email':
-      return 'email'
-    case 'price':
-    case 'stock':
-      return 'number'
-    default:
-      return 'text'
-  }
+const getInputType = (column) => {
+  const type = column.Type.toUpperCase()
+  if (type.includes('INT')) return 'number'
+  if (type.includes('DECIMAL') || type.includes('FLOAT') || type.includes('DOUBLE')) return 'number'
+  if (type.includes('DATE')) return 'date'
+  if (type.includes('TIME')) return 'datetime-local'
+  return 'text'
 }
 
-const getFieldLabel = (key) => {
-  const labels = {
-    username: '用户名',
-    email: '邮箱',
-    name: '名称',
-    price: '价格',
-    stock: '库存',
-    description: '描述'
-  }
-  return labels[key] || key
+const isEditable = (field) => {
+  return !['id', 'created_at', 'updated_at'].includes(field)
 }
 </script>
 
@@ -95,24 +61,18 @@ const getFieldLabel = (key) => {
       <h3>{{ mode === 'add' ? '添加记录' : '编辑记录' }}</h3>
       
       <form @submit.prevent="handleSubmit">
-        <div v-for="(value, key) in formData" 
-             :key="key" 
+        <div v-for="col in columns" 
+             :key="col.Field" 
              class="form-item">
-          <label>{{ getFieldLabel(key) }}</label>
-          <input 
-            v-if="key !== 'id' && 
-                  key !== 'created_at' && 
-                  key !== 'updated_at'"
-            v-model="formData[key]"
-            :type="getInputType(key)"
-            :required="key !== 'description'"
-            :step="getInputType(key) === 'number' ? '0.01' : undefined"
-          >
-          <textarea 
-            v-else-if="key === 'description'"
-            v-model="formData[key]"
-            rows="3"
-          ></textarea>
+          <template v-if="isEditable(col.Field)">
+            <label>{{ col.Field }}</label>
+            <input 
+              v-model="formData[col.Field]"
+              :type="getInputType(col)"
+              :required="col.Null === 'NO'"
+              :placeholder="`请输入${col.Field}`"
+            >
+          </template>
         </div>
         
         <div class="dialog-actions">

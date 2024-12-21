@@ -67,5 +67,15 @@ export const api = {
       `/tables/${tableName}/records/${id}`
     );
     return response.data;
+  },
+
+  async createTable(tableData) {
+    const response = await instance.post('/tables', tableData);
+    return response.data;
+  },
+
+  async getTableStructure(tableName) {
+    const response = await instance.get(`/tables/${tableName}/structure`);
+    return response.data;
   }
 }; 
