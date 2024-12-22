@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://172.20.10.2:3000/api';//这个地方是服务器的IP地址和端口，需要根据实际情况修改，这很重要
 
 // 创建 axios 实例
 const instance = axios.create({
